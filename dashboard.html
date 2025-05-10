@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinelle</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 1em;
+        }
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .section {
+            margin-bottom: 2em;
+        }
+        pre {
+            background: #1e293b;
+            padding: 1em;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Sentinelle</h1>
+    <div class="section">
+        <strong>Dernière activité :</strong><br>
+        {{ last_update }}
+    </div>
+    <div class="section">
+        <strong>Mémoire active :</strong><br>
+        <ul>
+            {% for key in memoire_keys %}
+            <li>{{ key }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="section">
+        <strong>Derniers logs :</strong><br>
+        {% for log in logs %}
+        <pre>{{ log }}</pre>
+        {% endfor %}
+    </div>
+</body>
+</html>
