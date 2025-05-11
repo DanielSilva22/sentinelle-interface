@@ -3,7 +3,11 @@ from flask import Flask, render_template, request, jsonify
 import os
 import json
 from datetime import datetime
-import openai
+
+try:
+    import openai
+except ImportError:
+    openai = None
 
 app = Flask(__name__)
 
@@ -13,7 +17,8 @@ LOG_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/logs")
 MEMO_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/memoire_agent.json")
 COMMAND_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/sentinelle.json")
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")  # Clé stockée en variable d'env
+if openai:
+    openai.api_key = os.environ.get("OPENAI_API_KEY")  # Clé stockée en variable d'env
 
 # === ROUTES ===
 @app.route("/")
@@ -42,12 +47,14 @@ def ping():
 
 @app.route("/gpt-command", methods=["POST"])
 def gpt_command():
+    if not openai:
+        return jsonify({"error": "Le module openai n'est pas installé."}), 500
+    if not openai.api_key:
+        return jsonify({"error": "Clé API GPT manquante."}), 500
+
     data = request.json
     command_type = data.get("type")
     params = data.get("params", {})
-
-    if not openai.api_key:
-        return jsonify({"error": "Clé API GPT manquante."}), 500
 
     if command_type == "generate_summary":
         content = "Résumé demandé: " + json.dumps(params)
@@ -87,4 +94,5 @@ def api_command():
 # === LANCEMENT ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
