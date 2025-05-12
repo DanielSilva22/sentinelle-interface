@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Sentinelle Interface</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 1em; }
+    h1, h2 { font-size: 1.3em; margin-top: 1.5em; }
+    button { background-color: #22c55e; color: white; padding: 10px 16px; border: none;
+             border-radius: 6px; font-size: 1em; cursor: pointer; margin-top: 0.5em; }
+    pre { background: #1e293b; padding: 0.8em; border-radius: 4px; margin-bottom: 1em; overflow-x: auto; }
+    .log-section { margin-top: 2em; }
+    .box { background: #1e293b; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Sentinelle Interface</h1>
+  <div><strong>Dernière activité :</strong> {{ last_update }}</div>
+
+  <div class="log-section">
+    <h2>🧾 Derniers Logs</h2>
+    {% for log in logs %}
+      <pre>{{ log }}</pre>
+    {% endfor %}
+  </div>
+
+  <div class="log-section">
+    <h2>🧠 Mémoire active</h2>
+    <ul>
+    {% for key in memoire_keys %}
+      <li>{{ key }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+
+  <div class="log-section">
+    <h2>📤 Forcer GPT (synthèse test)</h2>
+    <button onclick="triggerGPT()">Générer Synthèse</button>
+    <div id="gpt-result" style="margin-top: 1em;"></div>
+  </div>
+
+  <div class="log-section">
+    <h2>🧾 Dernier Résultat</h2>
+    {% if latest_result %}
+      <div class="box">{{ latest_result }}</div>
+    {% else %}
+      <div>Aucun résultat encore.</div>
+    {% endif %}
+  </div>
+
+  <div class="log-section">
+    <h2>📚 Historique des Résultats GPT</h2>
+    {% for item in historique %}
+      <div class="box">
+        <div><strong>{{ item.timestamp }}</strong> — <em>{{ item.type }}</em></div>
+        <div>{{ item.result }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function triggerGPT() {
+      fetch("/api/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "generate_summary",
+          params: {
+            target: "Logs",
+            style: "brief",
+            contenu: "Résumé de test pour vérifier l'exécution de la commande."
+          }
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("gpt-result").innerText = "📨 Commande envoyée : " + JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById("gpt-result").innerText = "❌ Erreur de requête.";
+      });
+    }
+  </script>
+</body>
+</html>
