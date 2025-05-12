@@ -1,13 +1,9 @@
-# app.py (interface Flask robuste + cœur JSON partagé)
+# app.py (corrigé pour Render)
 from flask import Flask, render_template, request, jsonify
 import os
 import json
 from datetime import datetime
-
-try:
-    import openai
-except ImportError:
-    openai = None
+import openai
 
 app = Flask(__name__)
 
@@ -16,30 +12,36 @@ BASE_PATH = os.path.join(os.getcwd(), "Hub_Personnel")
 LOG_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/logs")
 MEMO_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/memoire_agent.json")
 COMMAND_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/sentinelle.json")
-
-if openai:
-    openai.api_key = os.environ.get("OPENAI_API_KEY")  # Clé stockée en variable d'env
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # === ROUTES ===
 @app.route("/")
 def dashboard():
-    try:
-        os.makedirs(LOG_PATH, exist_ok=True)
-        logs = sorted(os.listdir(LOG_PATH), reverse=True)[:5]
-        logs_display = []
-        for log in logs:
+    if not os.path.exists(LOG_PATH):
+        os.makedirs(LOG_PATH)
+
+    logs = sorted(os.listdir(LOG_PATH), reverse=True)[:5] if os.path.exists(LOG_PATH) else []
+    logs_display = []
+    for log in logs:
+        try:
             with open(os.path.join(LOG_PATH, log), 'r') as f:
                 logs_display.append(f.read())
+        except:
+            continue
 
-        last_update = logs_display[0].split("\n")[0] if logs_display else "Aucune activité."
-        memoire = json.load(open(MEMO_PATH)) if os.path.exists(MEMO_PATH) else {}
+    last_update = logs_display[0].split("\n")[0] if logs_display else "Aucune activité."
 
-        return render_template("dashboard.html",
-                               logs=logs_display,
-                               last_update=last_update,
-                               memoire_keys=list(memoire.keys()))
+    try:
+        with open(MEMO_PATH, "r") as f:
+            memoire = json.load(f)
     except Exception as e:
-        return f"Erreur lors du chargement du tableau de bord : {str(e)}", 500
+        print("❌ Erreur mémoire:", e)
+        memoire = {}
+
+    return render_template("dashboard.html",
+                           logs=logs_display,
+                           last_update=last_update,
+                           memoire_keys=list(memoire.keys()))
 
 @app.route("/ping")
 def ping():
@@ -47,11 +49,6 @@ def ping():
 
 @app.route("/gpt-command", methods=["POST"])
 def gpt_command():
-    if not openai:
-        return jsonify({"error": "Le module openai n'est pas installé."}), 500
-    if not openai.api_key:
-        return jsonify({"error": "Clé API GPT manquante."}), 500
-
     data = request.json
     command_type = data.get("type")
     params = data.get("params", {})
@@ -92,6 +89,9 @@ def api_command():
         return jsonify({"error": str(e)}), 500
 
 # === LANCEMENT ===
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
 
