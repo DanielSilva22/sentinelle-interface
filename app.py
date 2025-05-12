@@ -1,4 +1,4 @@
-# app.py (corrigé pour Render)
+# app.py (Render + historique GPT)
 from flask import Flask, render_template, request, jsonify
 import os
 import json
@@ -12,6 +12,7 @@ BASE_PATH = os.path.join(os.getcwd(), "Hub_Personnel")
 LOG_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/logs")
 MEMO_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/memoire_agent.json")
 COMMAND_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/sentinelle.json")
+HISTO_PATH = os.path.join(BASE_PATH, "GlitchOps/Sentinelle/historique_gpt.json")
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # === ROUTES ===
@@ -38,10 +39,43 @@ def dashboard():
         print("❌ Erreur mémoire:", e)
         memoire = {}
 
+    latest_result = None
+    try:
+        if os.path.exists(COMMAND_PATH):
+            with open(COMMAND_PATH, "r") as f:
+                cmd = json.load(f)
+            if cmd.get("status") == "done" and "result" in cmd:
+                latest_result = cmd["result"]
+                # Ajout au fichier historique
+                historique = []
+                if os.path.exists(HISTO_PATH):
+                    with open(HISTO_PATH, "r") as f:
+                        historique = json.load(f)
+                historique.insert(0, {
+                    "timestamp": cmd.get("executed_at"),
+                    "result": cmd["result"],
+                    "type": cmd.get("type"),
+                    "source": cmd.get("source")
+                })
+                with open(HISTO_PATH, "w") as f:
+                    json.dump(historique[:25], f, indent=2)  # Garde les 25 derniers max
+    except:
+        latest_result = None
+
+    historique_display = []
+    try:
+        if os.path.exists(HISTO_PATH):
+            with open(HISTO_PATH, "r") as f:
+                historique_display = json.load(f)
+    except:
+        historique_display = []
+
     return render_template("dashboard.html",
                            logs=logs_display,
                            last_update=last_update,
-                           memoire_keys=list(memoire.keys()))
+                           memoire_keys=list(memoire.keys()),
+                           latest_result=latest_result,
+                           historique=historique_display)
 
 @app.route("/ping")
 def ping():
@@ -91,6 +125,7 @@ def api_command():
 # === LANCEMENT ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
